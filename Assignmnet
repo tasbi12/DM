@@ -1,9 +1,78 @@
-import pandas as pd
-import numpy as np
+import java.util.*;
+import java.util.stream.Collectors;
 
-url = "https://raw.githubusercontent.com/datasciencedojo/datasets/master/titanic.csv"
-df = pd.read_csv(url)
+class Passenger {
+    int PassengerId, Survived, Pclass, SibSp, Parch;
+    String Name, Sex, Ticket, Cabin, Embarked, AgeCategory, Surname;
+    double Age, Fare;
 
+    Passenger(int PassengerId, int Survived, int Pclass, String Name, String Sex, double Age, 
+              int SibSp, int Parch, String Ticket, double Fare, String Cabin, String Embarked) {
+        this.PassengerId = PassengerId;
+        this.Survived = Survived;
+        this.Pclass = Pclass;
+        this.Name = Name;
+        this.Sex = Sex;
+        this.Age = Age;
+        this.SibSp = SibSp;
+        this.Parch = Parch;
+        this.Ticket = Ticket;
+        this.Fare = Fare;
+        this.Cabin = Cabin;
+        this.Embarked = Embarked;
+    }
+}
 
-df['Age'].fillna(df['Age'].median(), inplace=True)  
-df['Embarked'].fillna(df['Embarked'].mode()[0], inplace=True) 
+public class TitanicDataProcessor {
+    public static Double median(List<Double> values) {
+        List<Double> filtered = values.stream().filter(v -> !v.isNaN()).sorted().collect(Collectors.toList());
+        if (filtered.isEmpty()) return Double.NaN;
+        int mid = filtered.size() / 2;
+        return (filtered.size() % 2 == 0) ? (filtered.get(mid - 1) + filtered.get(mid)) / 2.0 : filtered.get(mid);
+    }
+
+    public static String mode(List<String> values) {
+        Map<String, Long> freqMap = values.stream().filter(s -> !s.isEmpty())
+                .collect(Collectors.groupingBy(s -> s, Collectors.counting()));
+        return freqMap.entrySet().stream().max(Map.Entry.comparingByValue()).map(Map.Entry::getKey).orElse("");
+    }
+
+    public static String categorizeAge(double age) {
+        if (age <= 12) return "Child";
+        if (age <= 19) return "Teen";
+        if (age <= 35) return "Adult";
+        if (age <= 60) return "Middle-Aged";
+        return "Senior";
+    }
+
+    public static void main(String[] args) {
+        List<Passenger> data = new ArrayList<>(Arrays.asList(
+            new Passenger(21, 0, 2, "Ali, Mr. Ahmed", "male", 54, 1, 0, "202000", 25.50, "C123", "C"),
+            new Passenger(22, 1, 1, "Khan, Miss. Zainab", "female", Double.NaN, 0, 1, "203003", 75.25, "", "S"),
+            new Passenger(23, 0, 3, "Rehman, Mr. Tariq", "male", 36, 0, 0, "200010", 7.00, "", ""),
+            new Passenger(24, 1, 2, "Fatima, Mrs. Ayesha", "female", 28, 1, 2, "203999", 32.00, "D50", "Q"),
+            new Passenger(25, 1, 3, "Javed, Miss. Noor", "female", 17, 0, 0, "209111", 8.00, "Unknown", "")
+        ));
+
+        List<String> embarkedList = data.stream().map(p -> p.Embarked).filter(s -> !s.isEmpty()).collect(Collectors.toList());
+        String embarkedMode = mode(embarkedList);
+        data.forEach(p -> { if (p.Embarked.isEmpty()) p.Embarked = embarkedMode; });
+
+        List<Double> ageList = data.stream().map(p -> p.Age).collect(Collectors.toList());
+        double ageMedian = median(ageList);
+        data.forEach(p -> { if (Double.isNaN(p.Age)) p.Age = ageMedian; });
+
+        data.forEach(p -> { if (p.Cabin.isEmpty()) p.Cabin = "Not Assigned"; });
+
+        data.forEach(p -> p.AgeCategory = categorizeAge(p.Age));
+
+        data.forEach(p -> p.Surname = p.Name.split(",")[0]);
+
+        System.out.printf("%-5s %-8s %-6s %-13s %-10s %-15s %-10s%n", "ID", "Surv", "Age", "AgeGroup", "Embarked", "Cabin", "Surname");
+        System.out.println("---------------------------------------------------------------------");
+        for (Passenger p : data) {
+            System.out.printf("%-5d %-8d %-6.1f %-13s %-10s %-15s %-10s%n",
+                    p.PassengerId, p.Survived, p.Age, p.AgeCategory, p.Embarked, p.Cabin, p.Surname);
+        }
+    }
+}
